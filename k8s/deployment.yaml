@@ -29,6 +29,6 @@ spec:
       serviceAccountName: flights-api-sa
       containers:
         - name: flights-api
-          image: registry.gitlab.com/mohammedkhaiserulla/flights-platform/flights-api:latest
+          image: registry.gitlab.com/mohammedkhaiserulla/flights-platform/flights-api:6408d6b6
           ports:
             - containerPort: 5000
