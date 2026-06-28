@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flights-api
+  namespace: flights-team
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flights-api
+  template:
+    metadata:
+      labels:
+        app: flights-api
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "flights-api-role"
+        vault.hashicorp.com/agent-inject-secret-db_password: "secret/flights-team/flights-api"
+        vault.hashicorp.com/agent-inject-template-db_password: |
+          {{- with secret "secret/flights-team/flights-api" -}}
+          {{ .Data.data.db_password }}
+          {{- end }}
+        vault.hashicorp.com/agent-inject-secret-partner_api_key: "secret/flights-team/flights-api"
+        vault.hashicorp.com/agent-inject-template-partner_api_key: |
+          {{- with secret "secret/flights-team/flights-api" -}}
+          {{ .Data.data.partner_api_key }}
+          {{- end }}
+    spec:
+      serviceAccountName: flights-api-sa
+      containers:
+        - name: flights-api
+          image: registry.gitlab.com/mohammedkhaiserulla/flights-platform/flights-api:latest
+          ports:
+            - containerPort: 5000

@@ -1,0 +1,51 @@
+stages:
+  - sast
+  - build
+  - update-manifest
+
+variables:
+  IMAGE_NAME: registry.gitlab.com/mohammedkhaiserulla/flights-platform/flights-api
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+# ── Security ────────────────────────────────────────────────────────────────
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+# ── Build ────────────────────────────────────────────────────────────────────
+
+build-image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+  script:
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest ./app
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:latest
+  only:
+    - main
+
+# ── GitOps manifest update ───────────────────────────────────────────────────
+
+update-manifest:
+  stage: update-manifest
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache git
+    - git config --global user.email "ci@lastflight.io"
+    - git config --global user.name "GitLab CI"
+  script:
+    - |
+      sed -i "s|image:.*flights-api.*|image: $IMAGE_NAME:$IMAGE_TAG|" k8s/deployment.yaml
+      git add k8s/deployment.yaml
+      git diff --cached --quiet && echo "No changes" && exit 0
+      git commit -m "ci: update flights-api image to $IMAGE_TAG [skip ci]"
+      git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/mohammedkhaiserulla/flights-platform.git" HEAD:main
+  only:
+    - main
