@@ -15,7 +15,6 @@ def read_secret(secret_name):
 
 @app.route("/health")
 def health():
-    raise Exception("something went wrong")
     return jsonify({"status": "ok", "service": "flights-api"})
 
 @app.route("/config")
