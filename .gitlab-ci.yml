@@ -1,7 +1,10 @@
 stages:
+  - .pre
   - sast
+  - test
   - build
   - update-manifest
+  - .post
 
 variables:
   IMAGE_NAME: registry.gitlab.com/mohammedkhaiserulla/flights-platform/flights-api
